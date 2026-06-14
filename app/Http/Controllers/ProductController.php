@@ -10,6 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\StoreProductRequest;
+
 
 class ProductController extends Controller
 {
@@ -65,41 +67,23 @@ class ProductController extends Controller
      * POST /products
      * Simpan produk baru ke database.
      */
-    public function store(Request $request): RedirectResponse
-    {
-        // Validasi input
-        $validated = $request->validate([
-            'name'        => 'required|string|min:3|max:200',
-            'category_id' => 'required|exists:categories,id',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'description' => 'nullable|string|max:5000',
-            'status'      => 'required|in:active,inactive,draft',
-            'image'       => 'nullable|image|mimes:jpeg,png,webp|max:2048',
-        ]);
+ public function store(StoreProductRequest $request): RedirectResponse
+{
+    // $request sudah tervalidasi otomatis
+    // Jika gagal validasi, Laravel redirect kembali dengan error
 
-        // Handle upload gambar
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request
-                ->file('image')
-                ->store('products', 'public');
-        }
+    $data = $request->validated(); // hanya field yang lolos validasi
 
-        // Generate slug dari nama
-        $validated['slug'] = Str::slug($validated['name'])
-        . '-' . Str::random(5);
-
-        // Simpan ke database
-        $product = Product::create($validated);
-
-        // Redirect dengan pesan sukses
-        return redirect()
-            ->route('products.index')
-            ->with(
-                'success',
-                "Produk \"{$product->name}\" berhasil ditambahkan!"
-            );
+    if ($request->hasFile("image")) {
+        $data['image'] = $request->file('image')->store('products', 'public');
     }
+
+    Product::create($data);
+
+    return to_route('products.index')->with('success', 'Produk berhasil ditambahkan!');
+}
+
+
 
     /**
      * GET /products/{product}
