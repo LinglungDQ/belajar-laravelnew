@@ -1,6 +1,5 @@
 <?php
-
-// database/migrations/xxxx_create_categories_table.php
+// database/migrations/xxxx_xx_xx_xxxxx_create_categories_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,15 +10,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
-            $table->id();
-
-            $table->string('name', 100);
-            $table->string('slug')->unique();
+            $table->id();                    // BIGINT UNSIGNED AUTO INCREMENT (PK)
+            $table->string('name', 100)->unique();
+            $table->string('slug', 120)->unique();
             $table->text('description')->nullable();
-
             $table->boolean('is_active')->default(true);
-
-            $table->timestamps();
+            $table->timestamps();            // created_at & updated_at
         });
     }
 
@@ -28,3 +24,4 @@ return new class extends Migration
         Schema::dropIfExists('categories');
     }
 };
+
