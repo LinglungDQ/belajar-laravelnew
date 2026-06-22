@@ -10,7 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Requests\StoreProductRequest;
+use Illuminate\Validation\Rule;
+//use App\Http\Requests\StoreProductRequest;
 
 
 class ProductController extends Controller
@@ -67,24 +68,55 @@ class ProductController extends Controller
      * POST /products
      * Simpan produk baru ke database.
      */
- public function store(StoreProductRequest $request): RedirectResponse
-{
-    // $request sudah tervalidasi otomatis
-    // Jika gagal validasi, Laravel redirect kembali dengan error
+ // Validasi di controller dengan pesan kustom
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required','string','min:3','max:255','unique:products,name',
+            ],
+            'price' => [
+                'required','numeric','min:1000',
+            ],
+            'category_id' => [
+                'required',
+                Rule::exists('categories', 'id')
+                    ->where('is_active', true),
+            ],
+            'stock' => [
+                'required','integer','min:0',
+            ],
+            'description' => [
+                'nullable','string',
+            ],
+            'status' => [
+                'required','in:active,inactive,draft',
+            ],
+            'image' => [
+                'nullable','image','mimes:jpg,jpeg,png,webp','max:2048','dimensions:min_width=100,min_height=100',
+            ],
+        ], [
+            'name.required'       => 'Nama produk wajib diisi.',
+            'name.unique'         => 'Nama produk sudah terdaftar.',
+            'price.min'           => 'Harga minimum adalah Rp 1.000.',
+            'category_id.exists'  => 'Kategori tidak valid atau tidak aktif.',
+            'image.dimensions'    => 'Gambar harus minimal 100x100 pixel.',
+        ]);
 
-    $data = $request->validated(); // hanya field yang lolos validasi
+        // Upload gambar jika ada
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')
+                ->store('products', 'public');
+        }
 
-    if ($request->hasFile("image")) {
-        $data['image'] = $request->file('image')->store('products', 'public');
+        // Generate slug otomatis
+        $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(5);
+
+        Product::create($validated);
+
+        return to_route('products.index')
+            ->with('success', 'Produk disimpan!');
     }
-
-    Product::create($data);
-
-    return to_route('products.index')->with('success', 'Produk berhasil ditambahkan!');
-}
-
-
-
     /**
      * GET /products/{product}
      * Tampilkan detail satu produk.
@@ -119,10 +151,7 @@ class ProductController extends Controller
      * PUT /products/{product}
      * Update data produk di database.
      */
-    public function update(
-        Request $request,
-        Product $product
-    ): RedirectResponse {
+    public function update(Request $request, Product $product): RedirectResponse {
         $validated = $request->validate([
             'name'        => 'required|string|min:3|max:200',
             'category_id' => 'required|exists:categories,id',

@@ -70,13 +70,10 @@ Route::get('/blog/{category}/{slug}', fn ($cat, $slug) => "{$cat}/{$slug}")
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
-
         Route::get('/dashboard', [AdminController::class, 'index'])
             ->name('dashboard');
-
         Route::get('/users', fn () => 'Admin Users')
             ->name('users');
-
         Route::get('/settings', fn () => 'Admin Settings')
             ->name('settings');
     });
